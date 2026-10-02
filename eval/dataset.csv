@@ -1,0 +1,7 @@
+id,category,question,expected_complexity
+1,general,What is the capital of France?,easy
+2,general,What is the capital of France?,easy
+3,math,What is 25 multiplied by 14?,easy
+4,coding,Write a Python function to check if a string is a palindrome.,medium
+5,coding,Explain how garbage collection works in CPython with reference counting and cyclic GC.,hard
+6,reasoning,Design a distributed rate limiter using Redis and sliding window counter.,hard

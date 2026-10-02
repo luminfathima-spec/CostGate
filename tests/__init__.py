@@ -1,0 +1,1 @@
+"""CostGate test suite."""
