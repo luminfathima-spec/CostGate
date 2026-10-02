@@ -126,6 +126,18 @@ class Settings(BaseSettings):
     llm_max_retries: int = Field(default=3, ge=0)
     llm_retry_base_delay: float = Field(default=1.0, ge=0.0)
 
+    # Free-Tier Guardrails
+    daily_call_limit: int = Field(
+        default=1200,
+        gt=0,
+        description="Daily request limit to protect free tier quota",
+    )
+    rpm_limit: int = Field(
+        default=12,
+        gt=0,
+        description="Requests per minute safety limit for free tier",
+    )
+
     # Storage & Persistence
     db_path: str = Field(default="costgate.db", description="Path to SQLite database")
 
