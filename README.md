@@ -28,6 +28,19 @@ flowchart LR
 
 ---
 
+## Cost Accounting
+
+Thinking/reasoning tokens returned by Gemini models must be counted as output tokens when calculating cost.
+
+CostGate strictly calculates token expenditure as:
+- **Input Cost**: `(input_tokens / 1,000,000) * price_input`
+- **Output Cost**: `((output_tokens + thinking_tokens) / 1,000,000) * price_output`
+- **Total Request Cost**: `Input Cost + Output Cost`
+
+Cached responses always incur **\$0.00** cost and bypass model invocation.
+
+---
+
 ## Project Structure
 
 ```
@@ -86,7 +99,7 @@ pytest tests/ -v
 uvicorn app.main:app --reload --port 8000
 ```
 Interactive API documentation will be available at:
-`http://localhost:8000/docs`
+`http://127.0.0.1:8000/docs`
 
 ### 5. Running the Dashboard
 ```bash
