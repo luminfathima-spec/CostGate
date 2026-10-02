@@ -10,7 +10,7 @@ from typing import Any, Dict
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-PLACEHOLDER_NAMES = {"MODEL_SMALL", "MODEL_MEDIUM", "MODEL_LARGE"}
+PLACEHOLDER_NAMES = {"MODEL_SMALL", "MODEL_MEDIUM", "MODEL_LARGE", "EMBEDDING_MODEL"}
 
 
 class Settings(BaseSettings):
@@ -23,7 +23,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # API Keys & Secrets (optional by default, but required for live calls)
+    # API Keys & Secrets
     gemini_api_key: str = Field(
         default="",
         description="Google Gemini API key. Never logged or exposed.",
@@ -32,19 +32,31 @@ class Settings(BaseSettings):
     # Required Model Tier Identifiers (No defaults, fail if set to placeholder)
     model_small: str = Field(
         ...,
-        description="Identifier for the small model tier (e.g., gemini-2.5-flash-lite)",
+        description="Identifier for the small model tier (e.g., gemini-3.5-flash-lite)",
     )
     model_medium: str = Field(
         ...,
-        description="Identifier for the medium model tier (e.g., gemini-2.5-flash)",
+        description="Identifier for the medium model tier (e.g., gemini-3.7-flash)",
     )
     model_large: str = Field(
         ...,
-        description="Identifier for the large model tier (e.g., gemini-2.5-pro)",
+        description="Identifier for the large model tier (e.g., gemini-3.8-flash)",
     )
     embedding_model: str = Field(
         ...,
-        description="Identifier for the embedding model used for semantic caching (e.g., text-embedding-004)",
+        description="Identifier for the embedding model (e.g., gemini-embedding-2)",
+    )
+
+    # Gateway Routing Flags
+    enable_medium: bool = Field(
+        default=False,
+        description="When false, routes small -> large directly since medium and large share identical pricing",
+    )
+
+    # Price Snapshot Date
+    price_date: str = Field(
+        default="2026-10-02",
+        description="Date of pricing reference snapshot",
     )
 
     # Required Pricing per 1,000,000 tokens (USD) - No silent defaults
@@ -67,6 +79,10 @@ class Settings(BaseSettings):
     )
     price_output_large: float = Field(
         ..., ge=0.0, description="USD per 1M output tokens for large tier"
+    )
+
+    price_embedding: float = Field(
+        ..., ge=0.0, description="USD per 1M tokens for embedding model lookup"
     )
 
     # Routing Confidence Thresholds
@@ -118,7 +134,7 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, description="Server port")
     environment: str = Field(default="development")
 
-    @field_validator("model_small", "model_medium", "model_large")
+    @field_validator("model_small", "model_medium", "model_large", "embedding_model")
     @classmethod
     def validate_not_placeholder(cls, v: str, info) -> str:
         """Fail with a clear error message if a model name still equals placeholder text."""
