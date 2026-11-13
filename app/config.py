@@ -46,6 +46,10 @@ class Settings(BaseSettings):
         ...,
         description="Identifier for the embedding model (e.g., gemini-embedding-2)",
     )
+    judge_model: str = Field(
+        default="",
+        description="Identifier for evaluation judge model (defaults to value of model_medium)",
+    )
 
     # Gateway Routing Flags
     enable_medium: bool = Field(
@@ -122,8 +126,8 @@ class Settings(BaseSettings):
     )
 
     # Resiliency: Timeouts & Retries
-    llm_timeout_seconds: float = Field(default=15.0, gt=0.0)
-    llm_max_retries: int = Field(default=3, ge=0)
+    llm_timeout_seconds: float = Field(default=30.0, gt=0.0)
+    llm_max_retries: int = Field(default=4, ge=0)
     llm_retry_base_delay: float = Field(default=1.0, ge=0.0)
 
     # Free-Tier Guardrails
@@ -133,9 +137,9 @@ class Settings(BaseSettings):
         description="Daily request limit to protect free tier quota",
     )
     rpm_limit: int = Field(
-        default=12,
+        default=5,
         gt=0,
-        description="Requests per minute safety limit for free tier",
+        description="Requests per minute safety limit for free tier (default 5 to protect 5 RPM limits)",
     )
 
     # Storage & Persistence
@@ -165,8 +169,11 @@ class Settings(BaseSettings):
         return v
 
     @model_validator(mode="after")
-    def validate_routing_threshold_order(self) -> "Settings":
-        """Validate that route_low_conf is strictly less than route_high_conf."""
+    def validate_routing_and_models(self) -> "Settings":
+        """Validate routing threshold order and resolve judge_model default."""
+        if not self.judge_model or self.judge_model.strip().upper() == "JUDGE_MODEL":
+            self.judge_model = self.model_medium
+
         if self.route_low_conf >= self.route_high_conf:
             raise ValueError(
                 f"Config error: route_low_conf ({self.route_low_conf}) must be strictly less than "

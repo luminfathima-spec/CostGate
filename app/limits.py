@@ -57,26 +57,36 @@ class RateLimiter:
         self._timestamps: deque = deque()
         self._lock = threading.Lock()
 
-    def check_and_acquire(self) -> None:
+    def acquire(self, wait: bool = True) -> None:
         """
-        Record a request timestamp or raise RateLimitError if limit exceeded.
+        Record a request timestamp. If limit exceeded and wait=True, sleep until
+        a slot opens. If wait=False, raise RateLimitError immediately.
         """
-        with self._lock:
-            now = time.time()
-            cutoff = now - 60.0
+        while True:
+            with self._lock:
+                now = time.time()
+                cutoff = now - 60.0
 
-            # Discard timestamps older than 1 minute
-            while self._timestamps and self._timestamps[0] <= cutoff:
-                self._timestamps.popleft()
+                # Discard timestamps older than 1 minute
+                while self._timestamps and self._timestamps[0] <= cutoff:
+                    self._timestamps.popleft()
 
-            if len(self._timestamps) >= self.rpm_limit:
-                wait_sec = max(0.1, 60.0 - (now - self._timestamps[0]))
+                if len(self._timestamps) < self.rpm_limit:
+                    self._timestamps.append(now)
+                    return
+
+                wait_sec = max(0.2, 60.0 - (now - self._timestamps[0]) + 0.1)
+
+            if not wait:
                 raise RateLimitError(
                     f"Free-tier safety limit reached: {self.rpm_limit} requests/min. "
                     f"Please wait {wait_sec:.1f}s before trying again."
                 )
+            time.sleep(wait_sec)
 
-            self._timestamps.append(now)
+    def check_and_acquire(self) -> None:
+        """Record a request timestamp or raise RateLimitError immediately if limit exceeded."""
+        self.acquire(wait=False)
 
     def reset(self) -> None:
         """Clear recorded timestamps (primarily for test isolation)."""

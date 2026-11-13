@@ -1,0 +1,11 @@
+id,question,category,key_points,split
+2,What is the chemical symbol for gold?,simple_fact,Au | Latin word Aurum | atomic number 79,test
+7,What is the hardest naturally occurring mineral on Earth?,simple_fact,Diamond | carbon allotrope | Mohs hardness scale of 10,train
+8,Which ocean is the largest by surface area?,simple_fact,Pacific Ocean | covers more than 30% of Earth | largest ocean,train
+9,What organelle is commonly referred to as the powerhouse of the cell?,simple_fact,Mitochondria | cellular respiration | ATP production,train
+15,Which desert is the largest hot desert in the world?,simple_fact,Sahara Desert | located in Northern Africa | covers over 9 million square kilometers,train
+16,How do vaccines stimulate the human immune system to protect against disease?,explanation,introduce antigen or weakened pathogen | stimulate antibody production | create memory B and T cells | provide rapid response upon reinfection,test
+18,Explain the physical mechanism of the greenhouse effect on Earth.,explanation,solar radiation warms Earth surface | surface emits infrared radiation | greenhouse gases absorb infrared | re-radiate heat back toward surface,train
+41,"If it takes 8 workers 6 days to build a brick wall, how many days will 12 workers take to build the same wall, assuming equal productivity?",reasoning,total work is 8 * 6 = 48 worker-days | days = 48 / 12 workers | 4 days,train
+48,"What is the worst-case and average-case time complexity of Quicksort, and what causes the worst-case?",technical,average-case O(n log n) | worst-case O(n^2) | worst-case occurs with unbalanced partitions (e.g. sorted array with poor pivot choice) | partition-based divide-and-conquer,train
+57,"What is a memory leak, and what is the primary difference between how manual memory management and garbage collection handle memory?",technical,"memory allocated but no longer reachable or freed | manual requires explicit free/delete (e.g., C/C++) | garbage collection automatically detects and reclaims unreachable objects | GC introduces runtime overhead or pauses",train

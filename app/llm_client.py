@@ -32,13 +32,22 @@ def check_for_model_retirement(error: Exception, model_name: str) -> None:
         ) from error
 
 
+import re
+
+
 def is_retryable_error(error: Exception) -> bool:
-    """Determine whether an error qualifies for exponential backoff retries (429 or 5xx)."""
+    """Determine whether an error qualifies for exponential backoff retries (429, 5xx, timeouts)."""
     err_str = str(error)
 
     # 404 is strictly non-retryable
     if "404" in err_str or "no longer available" in err_str.lower():
         return False
+
+    # Timeouts (FutureTimeoutError, TimeoutError, network timeouts)
+    if isinstance(error, (TimeoutError, FutureTimeoutError)) or any(
+        t in err_str.lower() for t in ["timed out", "timeout", "deadline exceeded"]
+    ):
+        return True
 
     # 429 Rate limits / Resource Exhausted
     if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str.upper() or "quota" in err_str.lower():
@@ -49,6 +58,22 @@ def is_retryable_error(error: Exception) -> bool:
         return True
 
     return False
+
+
+def extract_retry_delay(error: Exception) -> Optional[float]:
+    """Parse recommended retryDelay from Google GenAI error message or response details."""
+    err_str = str(error)
+    # Check for "retry in 58.302730191s" or "retry in 2s"
+    m_s = re.search(r"retry in\s+([0-9]+(?:\.[0-9]+)?)\s*s", err_str, re.IGNORECASE)
+    if m_s:
+        return float(m_s.group(1))
+    m_ms = re.search(r"retry in\s+([0-9]+(?:\.[0-9]+)?)\s*ms", err_str, re.IGNORECASE)
+    if m_ms:
+        return float(m_ms.group(1)) / 1000.0
+    m_sec = re.search(r"['\"]retryDelay['\"]\s*:\s*['\"]([0-9]+)s['\"]", err_str)
+    if m_sec:
+        return float(m_sec.group(1))
+    return None
 
 
 class GeminiClient:
@@ -131,9 +156,15 @@ class GeminiClient:
                 # 1. Check for model retirement (strictly non-retryable)
                 check_for_model_retirement(err, model)
 
-                # 2. Check retry eligibility on 429 and 5xx
+                # 2. Check retry eligibility on 429, 5xx, and timeouts
                 if attempt < self.max_retries and is_retryable_error(err):
                     backoff_delay = self.retry_base_delay * (2 ** attempt)
+                    parsed_delay = extract_retry_delay(err)
+                    if parsed_delay is not None:
+                        backoff_delay = max(backoff_delay, parsed_delay + 1.5)
+                    elif any(c in str(err) for c in ["503", "UNAVAILABLE"]):
+                        backoff_delay = max(backoff_delay, 4.0 * (attempt + 1))
+
                     logger.warning(
                         "LLM call attempt %d failed for model '%s': %s. Retrying in %.2fs...",
                         attempt + 1,
